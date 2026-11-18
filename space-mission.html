@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>SPACE MISSION – Petualangan Luar Angkasa</title>
+<style>
+:root{--bg:#050816;--p1:#7c4dff;--p2:#00e5ff;--p3:#ff4081;--gold:#ffd54f;--ok:#00e676;--bad:#ff5252;--glass:rgba(16,20,56,.78)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:#fff;font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif}
+body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer}
+
+/* NAVBAR */
+#navbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;min-height:56px;background:linear-gradient(90deg,#12104a,#2a1070 60%,#12104a);border-bottom:3px solid var(--p1);box-shadow:0 4px 24px rgba(124,77,255,.55);z-index:30;position:relative}
+.brand{font-weight:900;letter-spacing:2px;font-size:clamp(14px,2.2vw,22px);color:var(--gold);text-shadow:0 0 12px rgba(255,213,79,.7);white-space:nowrap}
+.spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);padding:5px 12px;border-radius:999px;font-size:clamp(12px,1.6vw,16px);white-space:nowrap}
+.chip b{color:var(--p2)}
+#chipName{background:linear-gradient(90deg,#00b8d4,#7c4dff);border-color:#fff}
+#chipName b{color:#fff;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom}
+#pips{display:flex;gap:4px}
+.pip{width:22px;height:10px;border-radius:6px;background:rgba(255,255,255,.2);transition:.3s}
+.pip.done{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.pip.cur{background:var(--gold);box-shadow:0 0 8px var(--gold);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.45}}
+.iconbtn{position:relative;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:12px;padding:6px 10px;font-size:18px;transition:.15s}
+.iconbtn:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
+.dot{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;border:2px solid #fff;background:#ff5252}
+.dot.loading{background:#ffd54f;animation:blink .6s infinite}
+.dot.searching{background:#ff9100;animation:blink 1s infinite}
+.dot.tracking{background:#00e676;box-shadow:0 0 10px #00e676}
+
+/* STAGE */
+#stage{position:relative;flex:1;min-height:0;overflow:hidden}
+#game{position:absolute;inset:0;display:block;touch-action:none}
+
+/* QUESTION PANEL */
+#qpanel{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:min(900px,96%);z-index:10;background:var(--glass);backdrop-filter:blur(6px);border:2px solid var(--p2);border-radius:20px;padding:10px 16px 12px;box-shadow:0 0 28px rgba(0,229,255,.4);pointer-events:none}
+.qtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:clamp(12px,1.6vw,15px)}
+.tag{font-weight:900;padding:3px 12px;border-radius:999px;color:#001;letter-spacing:1px}
+#qDots{display:flex;gap:5px}
+#qDots i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid #fff}
+#qDots i.done{background:var(--ok)}
+#qDots i.cur{background:var(--gold)}
+#qTime{margin-left:auto;font-weight:900;color:var(--gold)}
+#btnSpeak{pointer-events:auto;background:rgba(255,255,255,.15);border:1px solid #fff;color:#fff;border-radius:10px;padding:2px 8px;font-size:16px}
+#qText{font-size:clamp(18px,3.2vw,32px);font-weight:900;text-align:center;margin:6px 0 8px;text-shadow:0 2px 8px #000;line-height:1.2}
+.timebar{height:10px;border-radius:6px;background:rgba(255,255,255,.18);overflow:hidden}
+.timebar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#00e676,#ffd54f);transition:background .3s}
+.timebar i.low{background:linear-gradient(90deg,#ff5252,#ff9100)}
+
+/* BANNER */
+#banner{position:absolute;inset:0;z-index:18;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
+#banner .n{font-size:clamp(44px,12vw,120px);font-weight:900;color:var(--gold);text-shadow:0 0 30px #ff9100,0 6px 0 #b8860b;animation:pop .6s ease-out}
+#banner .m{font-size:clamp(22px,5vw,48px);font-weight:900;text-shadow:0 0 18px var(--p2);animation:pop .8s ease-out}
+#banner .l{font-size:clamp(16px,3vw,28px);margin-top:8px;animation:pop 1s ease-out}
+@keyframes pop{0%{transform:scale(.2);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+
+/* CAMERA */
+#camBox{position:absolute;right:10px;bottom:10px;width:clamp(120px,18vw,210px);z-index:12;background:var(--glass);border:2px solid var(--ok);border-radius:14px;overflow:hidden;box-shadow:0 0 18px rgba(0,230,118,.5)}
+.camView{position:relative;transform:scaleX(-1);aspect-ratio:4/3;background:#000}
+.camView video,.camView canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#camStatus{font-size:clamp(10px,1.3vw,13px);padding:4px 6px;text-align:center;font-weight:700}
+#camLive{position:absolute;top:4px;left:6px;z-index:2;font-size:11px;font-weight:900;background:#ff1744;border-radius:6px;padding:1px 6px}
+
+/* TOAST */
+#toast{position:absolute;left:50%;top:14px;transform:translate(-50%,-140%);z-index:40;background:#fff;color:#222;padding:10px 18px;border-radius:14px;font-weight:700;max-width:92%;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.5);transition:transform .35s}
+#toast.show{transform:translate(-50%,0)}
+
+/* FEEDBACK */
+#feedback{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:min(680px,94%);z-index:15;border-radius:22px;padding:14px 18px;text-align:center;border:3px solid #fff;animation:pop .35s ease-out}
+#feedback.ok{background:linear-gradient(135deg,#00695c,#00c853)}
+#feedback.bad{background:linear-gradient(135deg,#b71c1c,#e53935)}
+#fbTitle{font-size:clamp(20px,3.6vw,32px);font-weight:900}
+#fbAns{font-size:clamp(15px,2.4vw,22px);margin-top:4px;font-weight:700}
+#fbExp{font-size:clamp(14px,2vw,19px);margin-top:4px;opacity:.95}
+.fbrow{display:flex;align-items:center;gap:12px;margin-top:10px}
+.fbtimer{flex:1;height:8px;background:rgba(0,0,0,.3);border-radius:6px;overflow:hidden}
+.fbtimer i{display:block;height:100%;width:100%;background:#fff}
+
+/* SCREENS */
+.screen{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto;background:radial-gradient(ellipse at center,rgba(10,10,50,.25),rgba(3,3,20,.82))}
+.panel{background:var(--glass);backdrop-filter:blur(8px);border:2px solid rgba(124,77,255,.8);border-radius:28px;padding:clamp(16px,3vw,34px);box-shadow:0 0 50px rgba(124,77,255,.45);width:min(820px,100%);text-align:center;margin:auto}
+h1.title{font-size:clamp(30px,7vw,68px);line-height:1;font-weight:900;color:var(--gold);text-shadow:0 0 22px #ff9100,0 5px 0 #b8860b;animation:float 3s ease-in-out infinite}
+h1.title small{display:block;font-size:.34em;letter-spacing:4px;color:var(--p2);text-shadow:0 0 14px var(--p2);margin-top:8px}
+@keyframes float{50%{transform:translateY(-8px)}}
+.topic{display:inline-block;margin:14px 0;background:rgba(255,255,255,.14);border:1px solid #fff;border-radius:999px;padding:6px 18px;font-weight:700;font-size:clamp(13px,2vw,18px)}
+.howto{font-size:clamp(13px,1.9vw,17px);opacity:.92;margin:8px 0 14px;line-height:1.5}
+#nameInput{width:min(420px,100%);font-size:clamp(18px,3vw,26px);padding:12px 18px;border-radius:16px;border:3px solid var(--p2);background:#0b0b3a;color:#fff;text-align:center;outline:none;font-family:inherit;font-weight:700}
+#nameInput:focus{box-shadow:0 0 20px var(--p2)}
+#nameInput.err{border-color:var(--bad);animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#nameHint{min-height:22px;color:#ff8a80;font-weight:700;margin-top:6px}
+.row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
+.btn{border:none;color:#fff;font-weight:900;font-size:clamp(16px,2.6vw,24px);padding:12px 26px;border-radius:18px;background:linear-gradient(180deg,#9c6bff,#6a3de8);box-shadow:0 6px 0 #3d1fa0,0 10px 22px rgba(0,0,0,.45);transition:.12s;font-family:inherit}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #3d1fa0}
+.btn.go{background:linear-gradient(180deg,#ffd54f,#ff9100);color:#3a1d00;box-shadow:0 6px 0 #b35f00,0 10px 22px rgba(0,0,0,.45)}
+.btn.cam{background:linear-gradient(180deg,#26c6da,#0097a7);box-shadow:0 6px 0 #006064,0 10px 22px rgba(0,0,0,.45)}
+.btn.red{background:linear-gradient(180deg,#ff6e6e,#e53935);box-shadow:0 6px 0 #8e1c1c,0 10px 22px rgba(0,0,0,.45)}
+.btn.small{font-size:clamp(13px,2vw,17px);padding:7px 16px;border-radius:12px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.camhint{font-size:13px;opacity:.8;margin-top:8px}
+h2{font-size:clamp(24px,5vw,44px);font-weight:900;text-shadow:0 0 16px var(--p2)}
+.sub{margin:6px 0 14px;font-size:clamp(14px,2.2vw,20px)}
+#missionGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:10px}
+.mcard{display:flex;flex-direction:column;gap:4px;align-items:center;color:#fff;border-radius:20px;padding:14px 10px;border:3px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);font-weight:700;transition:.15s}
+.mcard .num{font-size:34px;font-weight:900}
+.mcard .mname{font-size:16px;font-weight:900}
+.mcard .mdesc{font-size:12px;opacity:.85;min-height:30px}
+.mcard .mstat{margin-top:4px;font-weight:900}
+.mcard.open{background:linear-gradient(160deg,#ffd54f55,#ff910055);border-color:var(--gold);animation:glow 1.4s infinite}
+.mcard.open:hover{transform:scale(1.05)}
+.mcard.done{background:rgba(0,230,118,.2);border-color:var(--ok)}
+.mcard.locked{opacity:.5;cursor:not-allowed}
+.mcard:disabled{cursor:not-allowed}
+@keyframes glow{50%{box-shadow:0 0 28px var(--gold)}}
+.bigstars{font-size:clamp(36px,9vw,80px);margin:6px 0;filter:drop-shadow(0 0 14px #ffd54f)}
+.big{font-size:clamp(18px,3vw,28px);font-weight:800;margin:6px 0}
+@media (max-width:640px){#navbar{padding:6px 8px;gap:5px}.chip{padding:3px 8px}.pip{width:14px}.brand{font-size:13px}}
+</style>
+</head>
+<body>
+
+<header id="navbar">
+  <div class="brand">🚀 SPACE MISSION</div>
+  <div class="chip hidden" id="chipName">👨‍🚀 <b id="navName"></b></div>
+  <div class="spacer"></div>
+  <div class="chip">Misi <b id="navMission">0</b>/5</div>
+  <div id="pips" title="Progres misi"></div>
+  <div class="chip">⭐ <b id="navScore">0</b></div>
+  <div class="chip" id="navLives" title="Nyawa"></div>
+  <button class="iconbtn" id="btnCamNav" title="Aktifkan / matikan kamera"><span class="dot" id="camDot"></span>📷</button>
+  <button class="iconbtn" id="btnSound" title="Suara">🔊</button>
+  <button class="iconbtn" id="btnHome" title="Menu utama">🏠</button>
+</header>
+
+<main id="stage">
+  <canvas id="game"></canvas>
+
+  <div id="qpanel" class="hidden">
+    <div class="qtop">
+      <span class="tag" id="qTag">LOTS</span>
+      <span id="qMeta">Misi 1 · Soal 1/3</span>
+      <span id="qDots"><i></i><i></i><i></i></span>
+      <button id="btnSpeak" title="Baca soal">🔈</button>
+      <span id="qTime">⏱ 60</span>
+    </div>
+    <div id="qText">…</div>
+    <div class="timebar"><i id="qBar"></i></div>
+  </div>
+
+  <div id="banner" class="hidden"><div class="n" id="bnNum"></div><div class="m" id="bnName"></div><div class="l" id="bnLvl"></div></div>
+
+  <div id="camBox" class="hidden">
+    <div class="camView"><video id="video" playsinline muted></video><canvas id="camCanvas" width="320" height="240"></canvas></div>
+    <div id="camLive">● LIVE</div>
+    <div id="camStatus">…</div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="feedback" class="hidden">
+    <div id="fbTitle"></div><div id="fbAns"></div><div id="fbExp"></div>
+    <div class="fbrow"><div class="fbtimer"><i id="fbBar"></i></div><button class="btn small" id="btnSkipFb">Terus ▶</button></div>
+  </div>
+
+  <!-- LAYAR AWAL -->
+  <section class="screen" id="screenStart">
+    <div class="panel">
+      <h1 class="title">SPACE MISSION<small>PETUALANGAN LUAR ANGKASA</small></h1>
+      <div class="topic" id="topicInfo"></div>
+      <p class="howto">🧑‍🚀 Kamu astronot yang akan menyelamatkan galaksi!<br>Gerakkan pesawat ke <b>asteroid yang berisi jawaban benar</b> dan tahan sebentar.<br>✋ Telapak tangan (kamera) &nbsp;•&nbsp; 🖱️ Mouse / sentuh &nbsp;•&nbsp; ⌨️ Panah / WASD</p>
+      <input id="nameInput" type="text" maxlength="16" placeholder="Tulis namamu…" autocomplete="off" aria-label="Nama siswa">
+      <div id="nameHint"></div>
+      <div class="row">
+        <button class="btn go" id="btnStart">🚀 MULAI MISI</button>
+        <button class="btn cam" id="btnCamStart">📷 Aktifkan Kamera</button>
+      </div>
+      <p class="camhint">Kamera baru menyala setelah tombol “Aktifkan Kamera” ditekan. Tanpa kamera, game tetap bisa dimainkan dengan mouse atau keyboard.</p>
+    </div>
+  </section>
+
+  <!-- PETA MISI -->
+  <section class="screen hidden" id="screenSelect">
+    <div class="panel">
+      <h2>🗺️ PETA MISI</h2>
+      <div class="sub">Selesaikan misi satu per satu. Skor sekarang: <b id="selScore">0</b> ⭐</div>
+      <div id="missionGrid"></div>
+    </div>
+  </section>
+
+  <!-- MISI SELESAI -->
+  <section class="screen hidden" id="screenMissionDone">
+    <div class="panel">
+      <div class="bigstars">🌟</div>
+      <h2 id="mdTitle">Misi Selesai!</h2>
+      <div class="big" id="mdText"></div>
+      <div class="row">
+        <button class="btn go" id="btnNextMission">Misi Berikutnya ▶</button>
+        <button class="btn" id="btnToMap">🗺️ Peta Misi</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME OVER -->
+  <section class="screen hidden" id="screenGameOver">
+    <div class="panel">
+      <div class="bigstars">💥</div>
+      <h2>Pesawat Rusak!</h2>
+      <div class="big" id="goText"></div>
+      <div class="row">
+        <button class="btn go" id="btnRetry">🔁 Coba Lagi</button>
+        <button class="btn red" id="btnGoMenu">🏠 Menu Utama</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- KEMENANGAN -->
+  <section class="screen hidden" id="screenVictory">
+    <div class="panel">
+      <div class="bigstars" id="vicStars">🌟🌟🌟</div>
+      <h2 id="vicTitle">Selamat!</h2>
+      <div class="big" id="vicText"></div>
+      <div class="big">Total skor: <b style="color:var(--gold)" id="vicScore">0</b> / <span id="vicMax">1500</span></div>
+      <div class="row">
+        <button class="btn go" id="btnAgain">🔄 Main Kembali</button>
+        <button class="btn red" id="btnVicMenu">🏠 Menu Utama</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   KONFIGURASI SOAL  (ganti isi blok ini untuk materi lain)
+   level: LOTS / MOTS / HOTS ; answer = indeks jawaban benar (0-3)
+   ===================================================================== */
+const CONFIG = {
+  subject: 'Bahasa Jawa', topic: 'Perangan Awak', grade: 'Kelas 1',
+  maxLives: 5, retryLives: 3, pointsCorrect: 100, holdTime: 0.5, feedbackTime: 5,
+  missions: [
+    { name: 'Pancadriya', desc: 'Mripat, irung, kuping', level: 1, time: 60, speed: 0.35, size: 1.12,
+      questions: [
+        { level: 'LOTS', q: 'Kanggo ndelok, kita nganggo …', options: ['👁️ Mripat', '👂 Kuping', '👃 Irung', '👄 Tutuk'], answer: 0, explain: 'Mripat kanggo ndelok. (Mata untuk melihat.)' },
+        { level: 'MOTS', q: 'Adi arep ngambu kembang mawar. Adi nganggo …', options: ['👃 Irung', '👁️ Mripat', '👂 Kuping', '🖐️ Tangan'], answer: 0, explain: 'Irung kanggo ngambu. (Hidung untuk mencium bau.)' },
+        { level: 'HOTS', q: 'Rina ora krungu swara bel. Perangan awak sing ora apik yaiku …', options: ['👂 Kuping', '👁️ Mripat', '👃 Irung', '🦶 Sikil'], answer: 0, explain: 'Kuping kanggo ngrungokake swara. (Telinga untuk mendengar.)' }
+      ] },
+    { name: 'Tangan lan Driji', desc: 'Tangan, driji, kebersihan', level: 2, time: 55, speed: 0.45, size: 1.05,
+      questions: [
+        { level: 'LOTS', q: 'Kanggo nyekel, kita nganggo …', options: ['🖐️ Tangan', '🦶 Sikil', '👃 Irung', '🦷 Untu'], answer: 0, explain: 'Tangan kanggo nyekel. (Tangan untuk memegang.)' },
+        { level: 'MOTS', q: 'Sadurunge mangan, Dina kudu ngresiki …', options: ['🖐️ Tangan', 'Dhengkul', 'Pundhak', 'Gulu'], answer: 0, explain: 'Sadurunge mangan, tangan dikumbah. (Sebelum makan, cuci tangan.)' },
+        { level: 'HOTS', q: 'Tangan ana loro. Saben tangan duwe driji lima. Driji tangan kabeh ana …', options: ['10 (sepuluh)', '5 (lima)', '7 (pitu)', '12 (rolas)'], answer: 0, explain: '5 + 5 = 10. Driji tangan kabeh ana sepuluh.' }
+      ] },
+    { name: 'Sikil', desc: 'Sikil lan dhengkul', level: 3, time: 50, speed: 0.55, size: 1.0,
+      questions: [
+        { level: 'LOTS', q: 'Kanggo mlaku, kita nganggo …', options: ['🦶 Sikil', '🖐️ Tangan', '👁️ Mripat', '👂 Kuping'], answer: 0, explain: 'Sikil kanggo mlaku. (Kaki untuk berjalan.)' },
+        { level: 'MOTS', q: 'Budi lagi nyepak bal. Budi nganggo …', options: ['🦶 Sikil', '👃 Irung', '💇 Rambut', '👄 Tutuk'], answer: 0, explain: 'Bal disepak nganggo sikil. (Bola ditendang dengan kaki.)' },
+        { level: 'HOTS', q: 'Dhengkul Dina lara. Dina dadi angel …', options: ['Mlaku', 'Ndelok', 'Ngrungokake', 'Ngambu'], answer: 0, explain: 'Dhengkul ana ing sikil, dadi yen lara angel mlaku.' }
+      ] },
+    { name: 'Sirah lan Rai', desc: 'Ilat, untu, sirah', level: 4, time: 45, speed: 0.7, size: 0.97,
+      questions: [
+        { level: 'LOTS', q: 'Kanggo ngrasakake panganan, kita nganggo …', options: ['👅 Ilat', '👃 Irung', '👂 Kuping', '👁️ Mripat'], answer: 0, explain: 'Ilat kanggo ngrasakake. (Lidah untuk merasakan.)' },
+        { level: 'MOTS', q: 'Sawise mangan, Sari nggosok …', options: ['🦷 Untu', '👁️ Mripat', '👂 Kuping', '🦶 Sikil'], answer: 0, explain: 'Sawise mangan, untu digosok. (Setelah makan, gigi disikat.)' },
+        { level: 'HOTS', q: 'Sing ora kalebu perangan sirah yaiku …', options: ['🦶 Sikil', '👁️ Mripat', '👃 Irung', '👂 Kuping'], answer: 0, explain: 'Mripat, irung, lan kuping ana ing sirah. Sikil ora.' }
+      ] },
+    { name: 'Awak Kabeh', desc: 'Tantangan pungkasan', level: 5, time: 40, speed: 0.85, size: 0.95,
+      questions: [
+        { level: 'LOTS', q: 'Kanggo ngomong lan mangan, kita nganggo …', options: ['👄 Tutuk', '👂 Kuping', '👃 Irung', 'Dhengkul'], answer: 0, explain: 'Tutuk kanggo ngomong lan mangan. (Mulut.)' },
+        { level: 'MOTS', q: 'Bu Guru ngomong, “Tutupen mripatmu!” Siswa kudu nutup …', options: ['👁️ Mripat', '👃 Irung', '👂 Kuping', '👄 Tutuk'], answer: 0, explain: 'Mripat tegese mata. Tutupen mripatmu = tutup matamu.' },
+        { level: 'HOTS', q: 'Pak Tani mlaku sedina muput. Perangan awak sing paling kesel yaiku …', options: ['🦶 Sikil', '👁️ Mripat', '👂 Kuping', '💇 Rambut'], answer: 0, explain: 'Sing dienggo mlaku yaiku sikil, mula sikil sing paling kesel.' }
+      ] }
+  ]
+};
+const LEVELS = {
+  LOTS: { label: 'LOTS · Mengingat', color: '#4fc3f7' },
+  MOTS: { label: 'MOTS · Menerapkan', color: '#ffd54f' },
+  HOTS: { label: 'HOTS · Menalar', color: '#ff80ab' }
+};
+const AST_COLORS = ['#a1887f', '#90a4ae', '#b39ddb', '#80cbc4'];
+const GLOW_COLORS = ['#ffb74d', '#4fc3f7', '#ba68c8', '#4db6ac'];
+
+/* ===================== UTIL ===================== */
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+function validateConfig() {
+  const errs = [];
+  if (CONFIG.missions.length !== 5) errs.push('Jumlah misi harus 5');
+  const need = ['LOTS', 'MOTS', 'HOTS'];
+  CONFIG.missions.forEach((m, i) => {
+    if (m.questions.length !== 3) errs.push('Misi ' + (i + 1) + ' harus 3 soal');
+    m.questions.forEach((q, j) => {
+      if (q.level !== need[j]) errs.push('Misi ' + (i + 1) + ' soal ' + (j + 1) + ' harus ' + need[j]);
+      if (!q.options || q.options.length !== 4) errs.push('Misi ' + (i + 1) + ' soal ' + (j + 1) + ' harus 4 pilihan');
+      else if (!(q.answer >= 0 && q.answer < q.options.length)) errs.push('Misi ' + (i + 1) + ' soal ' + (j + 1) + ' indeks jawaban salah');
+      else if (new Set(q.options).size !== q.options.length) errs.push('Misi ' + (i + 1) + ' soal ' + (j + 1) + ' pilihan kembar');
+    });
+  });
+  if (errs.length) console.error('CONFIG error:', errs);
+  return errs;
+}
+
+/* ===================== STATE ===================== */
+const canvas = $('game'), ctx = canvas.getContext('2d');
+const stage = $('stage');
+let W = 0, H = 0, dpr = 1;
+const G = { state: 'menu', name: '', score: 0, lives: CONFIG.maxLives, mi: 0, qi: 0, unlocked: 0, missionStartScore: 0, timeLeft: 0, timeTotal: 1, asteroids: [], playTop: 20, introT: 0, fbT: 0, fbCorrect: false, playTopSet: false };
+const ship = { x: 300, y: 400, tx: 300, ty: 400, r: 26, tilt: 0, sc: 1 };
+let particles = [], stars = [], shootStars = [];
+let shakeT = 0, flashT = 0, flashColor = '#00e676', simTime = 0;
+const keys = {};
+const mission = () => CONFIG.missions[G.mi];
+
+/* ===================== AUDIO ===================== */
+let ac = null, muted = false;
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); return ac; }
+function tone(f, d, type, vol, delay, slide) {
+  if (muted) return; const a = audio(); if (!a) return;
+  try {
+    const t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + d);
+    g.gain.setValueAtTime(vol || .08, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + .03);
+  } catch (e) {}
+}
+const sfx = {
+  click() { tone(520, .08, 'square', .04); },
+  ok() { tone(660, .12, 'triangle', .09); tone(880, .12, 'triangle', .09, .1); tone(1320, .22, 'triangle', .09, .2); },
+  bad() { tone(240, .35, 'sawtooth', .07, 0, -130); },
+  win() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, .2, 'triangle', .09, i * .14)); },
+  lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, .28, 'sawtooth', .06, i * .2)); },
+  tick() { tone(900, .05, 'sine', .03); },
+  start() { tone(300, .3, 'sawtooth', .05, 0, 500); }
+};
+function speak(text) {
+  try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/…/g, ' ... ')); u.lang = 'id-ID'; u.rate = .8; speechSynthesis.speak(u); } catch (e) {}
+}
+
+/* ===================== LAYOUT ===================== */
+function astR() {
+  const base = Math.min(W, H * 0.95) * 0.125 * (G.state === 'menu' ? 1 : mission().size);
+  return clamp(base, 46, 100);
+}
+function computePlayTop() {
+  const qp = $('qpanel');
+  G.playTop = qp.classList.contains('hidden') ? 20 : qp.offsetTop + qp.offsetHeight + 10;
+}
+function resize() {
+  const r = stage.getBoundingClientRect();
+  W = Math.max(200, r.width); H = Math.max(200, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ship.sc = clamp(Math.min(W, H) / 700, .8, 1.3); ship.r = 26 * ship.sc;
+  if (!G.playTopSet) { ship.x = ship.tx = W / 2; ship.y = ship.ty = H - 80; G.playTopSet = true; }
+  initStars(); computePlayTop();
+  const R = astR(); G.asteroids.forEach(a => { a.r = R; });
+}
+window.addEventListener('resize', resize);
+
+/* ===================== BACKGROUND OBJECTS ===================== */
+function initStars() {
+  stars = []; const n = Math.floor(W * H / 4500) + 60;
+  for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, z: rand(.2, 1), tw: rand(0, 6.28), c: ['#ffffff', '#b3e5fc', '#ffe0b2', '#f8bbd0'][Math.floor(Math.random() * 4)] });
+}
+const PLANETS = [
+  { fx: .84, fy: .30, fr: .095, c: ['#fff3c4', '#e0a93b', '#7a4f10'], ring: '#f3d58a', sp: .05, ph: 0, amp: 14, bands: true },
+  { fx: .10, fy: .70, fr: .075, c: ['#b3e5fc', '#1e88e5', '#0a2a66'], sp: .04, ph: 2, amp: 10, swirl: true },
+  { fx: .90, fy: .84, fr: .05, c: ['#ffccbc', '#e64a19', '#4a1405'], sp: .06, ph: 4, amp: 8 },
+  { fx: .07, fy: .20, fr: .055, c: ['#e1bee7', '#8e24aa', '#2d0a3a'], ring: '#ce93d8', sp: .03, ph: 1, amp: 9, bands: true }
+];
+function drawPlanet(p, t) {
+  const R = p.fr * Math.min(W, H) * 1.15;
+  const x = p.fx * W + Math.sin(t * p.sp * 6 + p.ph) * p.amp, y = p.fy * H + Math.cos(t * p.sp * 5 + p.ph) * p.amp * .6;
+  ctx.save(); ctx.translate(x, y); ctx.globalAlpha = .9;
+  // halo
+  let g = ctx.createRadialGradient(0, 0, R * .9, 0, 0, R * 1.6); g.addColorStop(0, p.c[1] + '66'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R * 1.6, 0, 6.283); ctx.fill();
+  ctx.rotate(-.3);
+  const ring = (a0, a1) => { ctx.beginPath(); ctx.ellipse(0, 0, R * 1.9, R * .5, 0, a0, a1); ctx.lineWidth = R * .22; ctx.strokeStyle = p.ring; ctx.globalAlpha = .75; ctx.stroke(); ctx.globalAlpha = .9; };
+  if (p.ring) ring(Math.PI, Math.PI * 2);
+  g = ctx.createRadialGradient(-R * .4, -R * .4, R * .08, 0, 0, R * 1.05);
+  g.addColorStop(0, p.c[0]); g.addColorStop(.5, p.c[1]); g.addColorStop(1, p.c[2]);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, 6.283); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R, 0, 6.283); ctx.clip();
+  if (p.bands) { for (let i = -4; i <= 4; i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.13)'; ctx.fillRect(-R, i * R * .22, R * 2, R * .13); } }
+  if (p.swirl) { ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = R * .07; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(-R * .2 + i * R * .2, R * (.1 - i * .2), R * (.5 - i * .1), 3.4, 5.2); ctx.stroke(); } }
+  const sh = ctx.createRadialGradient(R * .55, R * .55, R * .2, R * .5, R * .5, R * 1.3); sh.addColorStop(0, 'rgba(0,0,20,0)'); sh.addColorStop(1, 'rgba(0,0,20,.7)');
+  ctx.fillStyle = sh; ctx.fillRect(-R, -R, R * 2, R * 2);
+  ctx.restore();
+  if (p.ring) ring(0, Math.PI);
+  ctx.restore();
+}
+function drawBackground(t) {
+  let g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#03041a'); g.addColorStop(.55, '#0c0a3d'); g.addColorStop(1, '#25104f');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const neb = [[.25, .3, '#7c4dff', .2], [.75, .65, '#00bcd4', .14], [.5, .9, '#ff4081', .12]];
+  neb.forEach((n, i) => {
+    const nx = n[0] * W + Math.sin(t * .1 + i) * 40, ny = n[1] * H + Math.cos(t * .08 + i) * 30, rr = Math.max(W, H) * .45;
+    const rg = ctx.createRadialGradient(nx, ny, 0, nx, ny, rr); rg.addColorStop(0, n[2] + Math.round(n[3] * 255).toString(16).padStart(2, '0')); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  });
+  for (const s of stars) {
+    const a = .45 + .55 * Math.abs(Math.sin(t * 1.5 + s.tw));
+    ctx.globalAlpha = a * s.z; ctx.fillStyle = s.c; const sz = s.z * 2.2;
+    ctx.fillRect(s.x, s.y, sz, sz);
+    if (s.z > .85) { ctx.globalAlpha = a * .4; ctx.fillRect(s.x - sz * 1.5, s.y + sz / 2 - .5, sz * 4, 1); ctx.fillRect(s.x + sz / 2 - .5, s.y - sz * 1.5, 1, sz * 4); }
+  }
+  ctx.globalAlpha = 1;
+  for (const s of shootStars) {
+    const gr = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * .12, s.y - s.vy * .12); gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = gr; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * .12, s.y - s.vy * .12); ctx.stroke();
+  }
+  PLANETS.forEach(p => drawPlanet(p, t));
+}
+
+/* ===================== ASTEROIDS ===================== */
+function makeAsteroid(opt, i, n) {
+  const m = mission(), R = astR();
+  const cols = W < 640 ? 2 : 4, rows = Math.ceil(n / cols);
+  const col = i % cols, row = Math.floor(i / cols);
+  const areaH = H - G.playTop - 30;
+  const x = clamp((col + .5) / cols * W + rand(-.08, .08) * W / cols, R, W - R);
+  const y = clamp(G.playTop + (row + .5) / rows * areaH + rand(-.1, .1) * areaH / rows, G.playTop + R, H - R - 10);
+  const ang = rand(0, 6.283), sp = 55 * m.speed * rand(.85, 1.2) + 12;
+  const shape = []; for (let k = 0; k < 14; k++) shape.push(rand(.9, 1.06));
+  const craters = []; for (let k = 0; k < 5; k++) craters.push({ x: rand(-.65, .65), y: rand(-.65, .65), r: rand(.07, .16) });
+  return { x, y, r: R, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, rot: rand(0, 6.283), spin: rand(-.5, .5), text: opt.t, correct: opt.correct, color: AST_COLORS[i % 4], glow: GLOW_COLORS[i % 4], shape, craters, hold: 0, result: null, fit: null, fitR: 0 };
+}
+function fitText(a) {
+  if (a.fit && a.fitR === a.r) return a.fit;
+  const maxW = a.r * 1.5, maxH = a.r * 1.3, words = a.text.split(' ');
+  let best = null;
+  for (let size = Math.floor(a.r * .36); size >= 9; size--) {
+    ctx.font = 'bold ' + size + "px 'Trebuchet MS',sans-serif";
+    const lines = []; let cur = '', ok = true;
+    for (const w of words) {
+      if (ctx.measureText(w).width > maxW) { ok = false; break; }
+      const t = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(t).width <= maxW) cur = t; else { lines.push(cur); cur = w; }
+    }
+    if (!ok) continue; if (cur) lines.push(cur);
+    if (lines.length * size * 1.15 <= maxH) { best = { size, lines }; break; }
+  }
+  if (!best) best = { size: 10, lines: [a.text] };
+  a.fit = best; a.fitR = a.r; return best;
+}
+function drawAsteroid(a, t) {
+  const { x, y, r } = a;
+  ctx.save(); ctx.translate(x, y);
+  if (a.result === 'dim') ctx.globalAlpha = .35;
+  const glowCol = a.result === 'ok' ? '#00e676' : a.result === 'bad' ? '#ff5252' : a.glow;
+  let g = ctx.createRadialGradient(0, 0, r * .85, 0, 0, r * 1.45); g.addColorStop(0, glowCol + '88'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.45, 0, 6.283); ctx.fill();
+  ctx.save(); ctx.rotate(a.rot);
+  const n = a.shape.length, pts = [];
+  for (let i = 0; i < n; i++) { const an = i / n * 6.283; pts.push([Math.cos(an) * r * a.shape[i], Math.sin(an) * r * a.shape[i]]); }
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) { const p0 = pts[i], p1 = pts[(i + 1) % n], mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2; if (i === 0) ctx.moveTo(mx, my); else ctx.quadraticCurveTo(p0[0], p0[1], mx, my); }
+  { const p0 = pts[0], p1 = pts[1]; ctx.quadraticCurveTo(p0[0], p0[1], (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2); }
+  ctx.closePath();
+  g = ctx.createRadialGradient(-r * .4, -r * .45, r * .1, 0, 0, r * 1.1); g.addColorStop(0, '#ffffff'); g.addColorStop(.25, a.color); g.addColorStop(1, '#1a1030');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = glowCol; ctx.stroke();
+  for (const c of a.craters) {
+    ctx.beginPath(); ctx.arc(c.x * r, c.y * r, c.r * r, 0, 6.283); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(c.x * r + 1, c.y * r + 1, c.r * r, .6, 3.7); ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  ctx.restore();
+  // teks
+  const f = fitText(a); ctx.font = 'bold ' + f.size + "px 'Trebuchet MS',sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const lh = f.size * 1.15, y0 = -(f.lines.length - 1) * lh / 2;
+  ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, f.size * .2); ctx.strokeStyle = 'rgba(10,5,40,.95)'; ctx.fillStyle = '#fff';
+  f.lines.forEach((ln, i) => { ctx.strokeText(ln, 0, y0 + i * lh); ctx.fillText(ln, 0, y0 + i * lh); });
+  // cincin tahan
+  if (a.hold > 0 && !a.result) {
+    const p = clamp(a.hold / CONFIG.holdTime, 0, 1);
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.12, -Math.PI / 2, -Math.PI / 2 + p * 6.283); ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.strokeStyle = '#ffd54f'; ctx.shadowColor = '#ffd54f'; ctx.shadowBlur = 16; ctx.stroke();
+  }
+  if (a.result === 'ok') { ctx.font = 'bold ' + r * .5 + 'px sans-serif'; ctx.fillText('✅', r * .6, -r * .65); }
+  ctx.restore();
+}
+
+/* ===================== SHIP ===================== */
+function drawShip(t) {
+  const { x, y } = ship, s = ship.sc;
+  let touching = G.asteroids.some(a => a.hold > 0 && !a.result);
+  ctx.save(); ctx.translate(x, y);
+  const rg = ctx.createRadialGradient(0, 0, ship.r * .5, 0, 0, ship.r * (touching ? 2.1 : 1.7)); rg.addColorStop(0, touching ? 'rgba(255,213,79,.45)' : 'rgba(0,229,255,.28)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, ship.r * 2.1, 0, 6.283); ctx.fill();
+  ctx.rotate(ship.tilt); ctx.scale(s, s);
+  const fl = 14 + Math.sin(t * 40) * 5 + Math.random() * 4;
+  let g = ctx.createLinearGradient(0, 20, 0, 34 + fl); g.addColorStop(0, '#fff59d'); g.addColorStop(.5, '#ff9100'); g.addColorStop(1, 'rgba(255,23,68,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-8, 20); ctx.quadraticCurveTo(0, 34 + fl, 8, 20); ctx.closePath(); ctx.fill();
+  for (const sg of [-1, 1]) {
+    g = ctx.createLinearGradient(sg * 10, 0, sg * 32, 26); g.addColorStop(0, '#b388ff'); g.addColorStop(1, '#4527a0');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(sg * 10, -4); ctx.lineTo(sg * 32, 20); ctx.lineTo(sg * 32, 30); ctx.lineTo(sg * 10, 20); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#ede7f6'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#ff5252'; ctx.beginPath(); ctx.arc(sg * 30, 28, 3, 0, 6.283); ctx.fill();
+  }
+  g = ctx.createLinearGradient(-16, 0, 16, 0); g.addColorStop(0, '#cfd8dc'); g.addColorStop(.5, '#ffffff'); g.addColorStop(1, '#90a4ae');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, -38); ctx.bezierCurveTo(18, -22, 17, 10, 11, 22); ctx.lineTo(-11, 22); ctx.bezierCurveTo(-17, 10, -18, -22, 0, -38); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#78909c'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = '#ff5252'; ctx.beginPath(); ctx.moveTo(0, -38); ctx.bezierCurveTo(8, -32, 11, -26, 12, -22); ctx.lineTo(-12, -22); ctx.bezierCurveTo(-11, -26, -8, -32, 0, -38); ctx.fill();
+  g = ctx.createRadialGradient(-2, -10, 1, 0, -8, 9); g.addColorStop(0, '#e0f7fa'); g.addColorStop(1, '#0288d1');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, -8, 8, 0, 6.283); ctx.fill(); ctx.strokeStyle = '#37474f'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#546e7a'; ctx.fillRect(-8, 20, 16, 5);
+  ctx.restore();
+}
+
+/* ===================== PARTIKEL ===================== */
+function burst(x, y, color, n) {
+  for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, s = rand(60, 320); particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0, max: rand(.5, 1.1), color, size: rand(3, 7), g: 200 }); }
+}
+function confetti() {
+  const cols = ['#ffd54f', '#ff4081', '#00e5ff', '#69f0ae', '#b388ff', '#ff9100'];
+  for (let i = 0; i < 3; i++) particles.push({ x: rand(0, W), y: -10, vx: rand(-40, 40), vy: rand(120, 260), life: 0, max: 8, color: cols[Math.floor(Math.random() * cols.length)], size: rand(6, 11), g: 30, conf: true, rot: rand(0, 6), vr: rand(-6, 6) });
+}
+
+/* ===================== INPUT ===================== */
+function setTarget(px, py) { ship.tx = px; ship.ty = py; }
+stage.addEventListener('pointermove', e => { const r = stage.getBoundingClientRect(); setTarget(e.clientX - r.left, e.clientY - r.top); });
+stage.addEventListener('pointerdown', e => { audio(); const r = stage.getBoundingClientRect(); setTarget(e.clientX - r.left, e.clientY - r.top); });
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (e.target && e.target.tagName === 'INPUT') { if (e.key === 'Enter') startFromMenu(); return; }
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+  keys[k] = true; audio();
+  if (k === 'enter' || k === ' ') {
+    const map = { feedback: 'btnSkipFb', missiondone: 'btnNextMission', gameover: 'btnRetry', victory: 'btnAgain' };
+    if (map[G.state]) $(map[G.state]).click();
+    else if (G.state === 'select') { const b = document.querySelector('.mcard.open'); if (b) b.click(); }
+  }
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+/* ===================== KAMERA & TANGAN ===================== */
+const HANDS_BASE = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/';
+const Cam = { on: false, loading: false, stream: null, hands: null, busy: false, lastSeen: 0, state: 'off' };
+const video = $('video'), camCanvas = $('camCanvas'), cctx = camCanvas.getContext('2d');
+let handsScriptPromise = null;
+function loadScript(src) {
+  if (window.Hands) return Promise.resolve();
+  if (handsScriptPromise) return handsScriptPromise;
+  handsScriptPromise = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.crossOrigin = 'anonymous'; s.onload = res; s.onerror = () => { handsScriptPromise = null; rej(new Error('load fail')); }; document.head.appendChild(s); });
+  return handsScriptPromise;
+}
+function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms || 4500); }
+function setCamState(s) {
+  Cam.state = s;
+  $('camDot').className = 'dot' + (s === 'off' ? '' : ' ' + s);
+  const txt = { off: '', loading: '⏳ Menyiapkan kamera…', searching: '🖐️ Tunjukkan telapak tanganmu', tracking: '✋ Tangan terdeteksi – KAMERA AKTIF' }[s];
+  $('camStatus').textContent = txt; $('camStatus').style.color = s === 'tracking' ? '#69f0ae' : '#ffd54f';
+  $('btnCamStart').textContent = (Cam.on || Cam.loading) ? '📷 Matikan Kamera' : '📷 Aktifkan Kamera';
+  $('camLive').classList.toggle('hidden', s !== 'tracking' && s !== 'searching');
+}
+async function enableCamera() {
+  if (Cam.on || Cam.loading) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Browser tidak mendukung kamera. Gunakan mouse atau keyboard.'); return; }
+  Cam.loading = true; $('camBox').classList.remove('hidden'); setCamState('loading');
+  try { Cam.stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false }); }
+  catch (e) { Cam.loading = false; $('camBox').classList.add('hidden'); setCamState('off'); toast('Kamera tidak diizinkan / tidak ditemukan. Gunakan mouse atau keyboard.'); return; }
+  if (!Cam.loading) { stopStream(); return; }
+  video.srcObject = Cam.stream; try { await video.play(); } catch (e) {}
+  try {
+    await loadScript(HANDS_BASE + 'hands.js');
+    Cam.hands = new window.Hands({ locateFile: f => HANDS_BASE + f });
+    Cam.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: .6, minTrackingConfidence: .5 });
+    Cam.hands.onResults(onHands);
+    await Cam.hands.initialize();
+  } catch (e) {
+    console.error(e); disableCamera(); toast('Model pelacak tangan gagal dimuat (cek koneksi internet). Gunakan mouse atau keyboard.', 6000); return;
+  }
+  if (!Cam.loading) return;
+  Cam.on = true; Cam.loading = false; setCamState('searching'); detectLoop();
+}
+function stopStream() { if (Cam.stream) { Cam.stream.getTracks().forEach(t => t.stop()); Cam.stream = null; } video.srcObject = null; }
+function disableCamera() {
+  Cam.on = false; Cam.loading = false; stopStream();
+  if (Cam.hands) { try { Cam.hands.close(); } catch (e) {} Cam.hands = null; }
+  $('camBox').classList.add('hidden'); cctx.clearRect(0, 0, 320, 240); setCamState('off');
+}
+function toggleCamera() { sfx.click(); audio(); (Cam.on || Cam.loading) ? disableCamera() : enableCamera(); }
+async function detectLoop() {
+  if (!Cam.on) return;
+  if (!Cam.busy && video.readyState >= 2 && Cam.hands) { Cam.busy = true; try { await Cam.hands.send({ image: video }); } catch (e) {} Cam.busy = false; }
+  requestAnimationFrame(detectLoop);
+}
+function onHands(res) {
+  cctx.clearRect(0, 0, 320, 240);
+  const lm = res.multiHandLandmarks && res.multiHandLandmarks[0];
+  if (!lm) { if (performance.now() - Cam.lastSeen > 600 && Cam.on) setCamState('searching'); return; }
+  Cam.lastSeen = performance.now(); if (Cam.state !== 'tracking') setCamState('tracking');
+  cctx.fillStyle = '#00e676'; for (const p of lm) { cctx.beginPath(); cctx.arc(p.x * 320, p.y * 240, 3, 0, 6.283); cctx.fill(); }
+  const ids = [0, 5, 9, 13, 17]; let cx = 0, cy = 0; ids.forEach(i => { cx += lm[i].x; cy += lm[i].y; }); cx /= ids.length; cy /= ids.length;
+  cctx.fillStyle = '#ffd54f'; cctx.beginPath(); cctx.arc(cx * 320, cy * 240, 9, 0, 6.283); cctx.fill();
+  const nx = clamp(((1 - cx) - .12) / .76, 0, 1), ny = clamp((cy - .12) / .76, 0, 1);
+  setTarget(lerp(ship.tx, nx * W, .65), lerp(ship.ty, ny * H, .65));
+}
+
+/* ===================== NAV & HUD ===================== */
+function buildPips() { const p = $('pips'); p.innerHTML = ''; for (let i = 0; i < 5; i++) p.appendChild(el('span', 'pip')); }
+function inMission() { return ['intro', 'play', 'feedback'].includes(G.state); }
+function updateNav() {
+  $('navScore').textContent = G.score;
+  $('navLives').textContent = '❤️'.repeat(Math.max(0, G.lives)) + '🖤'.repeat(Math.max(0, CONFIG.maxLives - G.lives));
+  $('navMission').textContent = inMission() ? G.mi + 1 : G.unlocked;
+  [...$('pips').children].forEach((p, i) => { p.className = 'pip' + (i < G.unlocked ? ' done' : (inMission() && i === G.mi ? ' cur' : '')); });
+  $('chipName').classList.toggle('hidden', !G.name);
+  $('navName').textContent = G.name;
+}
+function showScreen(id) {
+  ['screenStart', 'screenSelect', 'screenMissionDone', 'screenGameOver', 'screenVictory'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+}
+function hideGameUI() { $('qpanel').classList.add('hidden'); $('feedback').classList.add('hidden'); $('banner').classList.add('hidden'); }
+
+/* ===================== ALUR GAME ===================== */
+function resetGame() { G.score = 0; G.lives = CONFIG.maxLives; G.unlocked = 0; G.mi = 0; G.qi = 0; G.asteroids = []; particles = []; G.missionStartScore = 0; }
+function startFromMenu() {
+  audio(); const inp = $('nameInput'), name = inp.value.trim().replace(/\s+/g, ' ');
+  if (!name) { inp.classList.remove('err'); void inp.offsetWidth; inp.classList.add('err'); $('nameHint').textContent = 'Tulis namamu dulu ya! 😊'; inp.focus(); sfx.bad(); return; }
+  $('nameHint').textContent = ''; inp.classList.remove('err');
+  G.name = name; resetGame(); sfx.start(); goSelect();
+}
+function goSelect() { G.state = 'select'; hideGameUI(); renderSelect(); showScreen('screenSelect'); updateNav(); }
+function renderSelect() {
+  const box = $('missionGrid'); box.innerHTML = ''; $('selScore').textContent = G.score;
+  CONFIG.missions.forEach((m, i) => {
+    const done = i < G.unlocked, open = i === G.unlocked;
+    const b = el('button', 'mcard ' + (done ? 'done' : open ? 'open' : 'locked')); b.type = 'button'; b.disabled = !open;
+    b.appendChild(el('span', 'num', String(i + 1))); b.appendChild(el('span', 'mname', m.name)); b.appendChild(el('span', 'mdesc', m.desc));
+    b.appendChild(el('span', '', '⭐'.repeat(m.level))); b.appendChild(el('span', 'mstat', done ? '✅ Selesai' : open ? '▶ MULAI' : '🔒 Terkunci'));
+    if (!open && !done) b.title = 'Selesaikan misi sebelumnya dulu';
+    b.addEventListener('click', () => { if (i === G.unlocked) { sfx.click(); startMission(i); } });
+    box.appendChild(b);
+  });
+}
+function startMission(i) {
+  G.mi = i; G.qi = 0; G.missionStartScore = G.score; G.asteroids = []; particles = [];
+  showScreen(null); $('feedback').classList.add('hidden'); $('qpanel').classList.add('hidden');
+  $('bnNum').textContent = 'MISI ' + (i + 1); $('bnName').textContent = mission().name; $('bnLvl').textContent = 'Tingkat: ' + '⭐'.repeat(mission().level);
+  const b = $('banner'); b.classList.remove('hidden'); b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+  G.state = 'intro'; G.introT = 2; ship.tx = W / 2; ship.ty = H - 90; updateNav(); sfx.start();
+}
+function loadQuestion() {
+  const m = mission(), q = m.questions[G.qi], L = LEVELS[q.level];
+  $('banner').classList.add('hidden'); $('feedback').classList.add('hidden');
+  const tag = $('qTag'); tag.textContent = L.label; tag.style.background = L.color;
+  $('qMeta').textContent = 'Misi ' + (G.mi + 1) + ' · Soal ' + (G.qi + 1) + '/3';
+  [...$('qDots').children].forEach((d, i) => { d.className = i < G.qi ? 'done' : i === G.qi ? 'cur' : ''; });
+  $('qText').textContent = q.q; $('qpanel').classList.remove('hidden'); computePlayTop();
+  const opts = shuffle(q.options.map((t, i) => ({ t, correct: i === q.answer })));
+  G.asteroids = opts.map((o, i) => makeAsteroid(o, i, opts.length));
+  G.timeTotal = G.timeLeft = m.time; G.state = 'play'; updateTimeUI(); updateNav();
+}
+function updateTimeUI() {
+  const t = Math.max(0, G.timeLeft); $('qTime').textContent = '⏱ ' + Math.ceil(t);
+  const bar = $('qBar'); bar.style.width = (t / G.timeTotal * 100) + '%'; bar.classList.toggle('low', t / G.timeTotal < .25);
+}
+function resolve(a) {
+  if (G.state !== 'play') return;
+  const q = mission().questions[G.qi], correct = !!(a && a.correct), correctAst = G.asteroids.find(x => x.correct);
+  G.state = 'feedback'; G.fbT = CONFIG.feedbackTime; G.fbCorrect = correct;
+  G.asteroids.forEach(x => { x.hold = 0; x.result = x.correct ? 'ok' : (x === a ? 'bad' : 'dim'); });
+  const fb = $('feedback'); fb.className = correct ? 'ok' : 'bad';
+  if (correct) {
+    G.score += CONFIG.pointsCorrect; burst(a.x, a.y, '#00e676', 45); burst(a.x, a.y, '#ffd54f', 25); flashColor = '#00e676'; flashT = .45; sfx.ok();
+    $('fbTitle').textContent = '✅ Bener! +' + CONFIG.pointsCorrect + ' poin'; $('fbAns').textContent = '';
+  } else {
+    G.lives = Math.max(0, G.lives - 1); shakeT = .5; flashColor = '#ff5252'; flashT = .45; sfx.bad(); if (correctAst) burst(correctAst.x, correctAst.y, '#69f0ae', 25);
+    $('fbTitle').textContent = a ? '❌ Durung pas. Nyawa -1' : '⏰ Wektu entek! Nyawa -1';
+    $('fbAns').textContent = 'Jawaban sing bener: ' + q.options[q.answer];
+  }
+  $('fbExp').textContent = q.explain; fb.classList.remove('hidden'); updateNav();
+}
+function nextAfterFeedback() {
+  if (G.state !== 'feedback') return;
+  $('feedback').classList.add('hidden');
+  if (G.lives <= 0) return showGameOver();
+  G.qi++;
+  if (G.qi >= 3) return missionComplete();
+  loadQuestion();
+}
+function missionComplete() {
+  G.asteroids = []; hideGameUI(); G.unlocked = Math.max(G.unlocked, G.mi + 1);
+  if (G.mi === CONFIG.missions.length - 1) return victory();
+  let bonus = ''; if (G.lives < CONFIG.maxLives) { G.lives++; bonus = ' Bonus nyawa +1 ❤️'; }
+  G.state = 'missiondone'; sfx.win(); burst(W / 2, H / 2, '#ffd54f', 60);
+  $('mdTitle').textContent = '🎉 Misi ' + (G.mi + 1) + ' Rampung, ' + G.name + '!';
+  $('mdText').textContent = 'Skor: ' + G.score + ' ⭐.' + bonus;
+  $('btnNextMission').textContent = 'Misi ' + (G.mi + 2) + ' ▶';
+  showScreen('screenMissionDone'); updateNav();
+}
+function showGameOver() {
+  G.state = 'gameover'; G.asteroids = []; hideGameUI(); sfx.lose();
+  $('goText').textContent = 'Nyawamu entek, ' + G.name + '. Ayo nyoba maneh Misi ' + (G.mi + 1) + '! 💪';
+  showScreen('screenGameOver'); updateNav();
+}
+function victory() {
+  G.state = 'victory'; sfx.win(); setTimeout(() => G.state === 'victory' && sfx.win(), 1300);
+  const max = CONFIG.missions.length * 3 * CONFIG.pointsCorrect, stars = G.score >= max * .9 ? 3 : G.score >= max * .6 ? 2 : 1;
+  $('vicStars').textContent = '🌟'.repeat(stars) + '☆'.repeat(3 - stars);
+  $('vicTitle').textContent = '🏆 Matur nuwun, ' + G.name + '!';
+  $('vicText').textContent = 'Hebat sekali, ' + G.name + '! Kamu berhasil menyelamatkan galaksi dan sudah pintar menyebut perangan awak dalam Bahasa Jawa! 🚀🌌';
+  $('vicScore').textContent = G.score; $('vicMax').textContent = max;
+  showScreen('screenVictory'); updateNav();
+}
+function goMenu() { resetGame(); G.name = ''; G.state = 'menu'; hideGameUI(); showScreen('screenStart'); updateNav(); $('nameInput').focus(); }
+function retryMission() {
+  G.score = G.missionStartScore; G.lives = CONFIG.retryLives; sfx.click(); startMission(G.mi);
+}
+
+/* ===================== UPDATE ===================== */
+function update(dt, t) {
+  simTime = t;
+  // bintang
+  const flow = G.state === 'play' ? 1.7 : 1;
+  for (const s of stars) { s.y += 20 * s.z * dt * flow; if (s.y > H) { s.y = -4; s.x = Math.random() * W; } }
+  if (Math.random() < dt * .25) shootStars.push({ x: rand(0, W), y: rand(0, H * .4), vx: rand(300, 500), vy: rand(150, 300), life: 0 });
+  shootStars = shootStars.filter(s => { s.x += s.vx * dt; s.y += s.vy * dt; s.life += dt; return s.life < 1 && s.x < W + 50 && s.y < H + 50; });
+  // keyboard
+  const kx = (keys['arrowright'] || keys['d'] ? 1 : 0) - (keys['arrowleft'] || keys['a'] ? 1 : 0);
+  const ky = (keys['arrowdown'] || keys['s'] ? 1 : 0) - (keys['arrowup'] || keys['w'] ? 1 : 0);
+  if (kx || ky) { ship.tx += kx * 620 * dt; ship.ty += ky * 620 * dt; }
+  const minY = (G.state === 'play' || G.state === 'feedback') ? G.playTop + ship.r : ship.r;
+  ship.tx = clamp(ship.tx, ship.r, W - ship.r); ship.ty = clamp(ship.ty, minY, H - ship.r);
+  const dx = ship.tx - ship.x; ship.x += dx * Math.min(1, dt * 9); ship.y += (ship.ty - ship.y) * Math.min(1, dt * 9);
+  ship.tilt = lerp(ship.tilt, clamp(dx * .004, -.4, .4), Math.min(1, dt * 10));
+  // partikel
+  particles = particles.filter(p => { p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; if (p.conf) p.rot += p.vr * dt; return p.life < p.max && p.y < H + 30; });
+  if (shakeT > 0) shakeT -= dt; if (flashT > 0) flashT -= dt;
+  if (G.state === 'victory') confetti();
+
+  if (G.state === 'intro') { G.introT -= dt; if (G.introT <= 0) loadQuestion(); }
+  else if (G.state === 'play') updatePlay(dt);
+  else if (G.state === 'feedback') {
+    G.fbT -= dt; $('fbBar').style.width = clamp(G.fbT / CONFIG.feedbackTime, 0, 1) * 100 + '%';
+    G.asteroids.forEach(a => { a.rot += a.spin * dt; });
+    if (G.fbT <= 0) nextAfterFeedback();
+  }
+}
+function updatePlay(dt) {
+  G.timeLeft -= dt;
+  const top = G.playTop, as = G.asteroids;
+  for (const a of as) {
+    a.x += a.vx * dt; a.y += a.vy * dt; a.rot += a.spin * dt;
+    if (a.x < a.r) { a.x = a.r; a.vx = Math.abs(a.vx); } else if (a.x > W - a.r) { a.x = W - a.r; a.vx = -Math.abs(a.vx); }
+    if (a.y < top + a.r) { a.y = top + a.r; a.vy = Math.abs(a.vy); } else if (a.y > H - a.r - 6) { a.y = H - a.r - 6; a.vy = -Math.abs(a.vy); }
+  }
+  for (let i = 0; i < as.length; i++) for (let j = i + 1; j < as.length; j++) {
+    const A = as[i], B = as[j], dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy), min = (A.r + B.r) * .95;
+    if (d < min && d > .001) {
+      const nx = dx / d, ny = dy / d, ov = min - d; A.x -= nx * ov / 2; A.y -= ny * ov / 2; B.x += nx * ov / 2; B.y += ny * ov / 2;
+      const vi = A.vx * nx + A.vy * ny, vj = B.vx * nx + B.vy * ny;
+      if (vi > vj) { const df = vj - vi; A.vx += df * nx; A.vy += df * ny; B.vx -= df * nx; B.vy -= df * ny; }
+    }
+  }
+  let chosen = null;
+  for (const a of as) {
+    const d = Math.hypot(a.x - ship.x, a.y - ship.y);
+    if (d < ship.r + a.r * .82) { a.hold += dt; if (!chosen && a.hold >= CONFIG.holdTime) chosen = a; } else a.hold = Math.max(0, a.hold - dt * 2);
+  }
+  updateTimeUI();
+  if (chosen) resolve(chosen); else if (G.timeLeft <= 0) resolve(null);
+}
+
+/* ===================== DRAW ===================== */
+function draw(t) {
+  ctx.save();
+  if (shakeT > 0) ctx.translate(rand(-8, 8) * shakeT * 2, rand(-8, 8) * shakeT * 2);
+  drawBackground(t);
+  for (const a of G.asteroids) drawAsteroid(a, t);
+  for (const p of particles) {
+    const al = clamp(1 - p.life / p.max, 0, 1); ctx.globalAlpha = al; ctx.fillStyle = p.color;
+    if (p.conf) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore(); }
+    else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * al + 1, 0, 6.283); ctx.fill(); }
+  }
+  ctx.globalAlpha = 1;
+  drawShip(t);
+  ctx.restore();
+  if (flashT > 0) { ctx.globalAlpha = clamp(flashT, 0, .45) * .6; ctx.fillStyle = flashColor; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  update(dt, now / 1000); draw(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+/* ===================== TOMBOL ===================== */
+$('btnStart').addEventListener('click', startFromMenu);
+$('btnCamStart').addEventListener('click', toggleCamera);
+$('btnCamNav').addEventListener('click', toggleCamera);
+$('btnSound').addEventListener('click', () => { muted = !muted; $('btnSound').textContent = muted ? '🔇' : '🔊'; if (!muted) { audio(); sfx.click(); } });
+$('btnHome').addEventListener('click', () => {
+  audio(); if (G.state !== 'menu' && !confirm('Kembali ke menu utama? Progres permainan akan diulang dari awal.')) return;
+  sfx.click(); goMenu();
+});
+$('btnSkipFb').addEventListener('click', () => { sfx.click(); nextAfterFeedback(); });
+$('btnNextMission').addEventListener('click', () => { sfx.click(); if (G.state === 'missiondone') startMission(G.unlocked); });
+$('btnToMap').addEventListener('click', () => { sfx.click(); goSelect(); });
+$('btnRetry').addEventListener('click', () => { if (G.state === 'gameover') retryMission(); });
+$('btnGoMenu').addEventListener('click', () => { sfx.click(); goMenu(); });
+$('btnAgain').addEventListener('click', () => { sfx.click(); resetGame(); goSelect(); });
+$('btnVicMenu').addEventListener('click', () => { sfx.click(); goMenu(); });
+$('btnSpeak').addEventListener('click', e => { e.stopPropagation(); if (G.state === 'play' || G.state === 'feedback') speak(mission().questions[G.qi].q); });
+$('btnSpeak').addEventListener('pointerdown', e => e.stopPropagation());
+document.addEventListener('visibilitychange', () => { last = performance.now(); });
+
+/* ===================== INIT ===================== */
+$('topicInfo').textContent = '📚 ' + CONFIG.subject + ' • ' + CONFIG.topic + ' • ' + CONFIG.grade;
+const cfgErrors = validateConfig();
+buildPips(); resize(); updateNav(); setCamState('off');
+if (cfgErrors.length) toast('Konfigurasi soal bermasalah: ' + cfgErrors[0], 8000);
+window.__SM = { G, ship, CONFIG, resolve, get particles() { return particles; } };
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
